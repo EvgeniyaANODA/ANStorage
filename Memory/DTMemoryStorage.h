@@ -49,14 +49,6 @@
 @property (nonatomic, strong) NSMutableArray * sections;
 
 /**
- Property to enable/disable logging. Logging is on by default, and will print out any critical messages, that DTMemoryStorage is encountering.
- */
-@property (nonatomic, assign) BOOL loggingEnabled;
-///---------------------------------------
-/// @name Add items
-///---------------------------------------
-
-/**
  Add item to section 0.
  
  @param item Model you want to add
