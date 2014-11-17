@@ -39,9 +39,7 @@
 + (instancetype)storage
 {
     DTMemoryStorage * storage = [self new];
-
     storage.sections = [NSMutableArray array];
-
     storage.loggingEnabled = YES;
 
     return storage;
@@ -100,7 +98,7 @@
 
 -(void)setSectionFooterModel:(id)footerModel forSectionIndex:(NSUInteger)sectionNumber
 {
-    NSAssert(self.supplementaryHeaderKind, @"supplementaryFooterKind property was not set before calling setSectionFooterModel: forSectionIndex: method");
+    NSAssert(self.supplementaryFooterKind, @"supplementaryFooterKind property was not set before calling setSectionFooterModel: forSectionIndex: method");
     
     DTSectionModel * section = [self sectionAtIndex:sectionNumber];
     
@@ -159,7 +157,7 @@
     [self setSupplementaries:headerModels forKind:self.supplementaryHeaderKind];
 }
 
--(void)setSectionFooterModels:(NSArray *)footerModels
+- (void)setSectionFooterModels:(NSArray *)footerModels
 {
     NSAssert(self.supplementaryFooterKind, @"Please set supplementaryFooterKind property before setting section header models");
     
@@ -323,8 +321,17 @@
     [self finishUpdate];
 }
 
-- (void)replaceItem:(id)itemToReplace
-           withItem:(id)replacingItem
+- (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath
+{
+    DTSectionModel * fromSection = [self sections][fromIndexPath.section];
+    DTSectionModel * toSection = [self sections][toIndexPath.section];
+    id tableItem = fromSection.objects[fromIndexPath.row];
+    
+    [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
+    [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
+}
+
+- (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem
 {
     [self startUpdate];
 

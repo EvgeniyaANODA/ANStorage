@@ -138,8 +138,11 @@
  
  @param replacingItem Model object you are replacing it with.
  */
-- (void)replaceItem:(id)itemToReplace
-           withItem:(id)replacingItem;
+- (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem;
+
+
+- (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath;
+
 
 ///---------------------------------------
 /// @name Managing sections

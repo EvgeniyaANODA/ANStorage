@@ -6,7 +6,6 @@
 //  Copyright (c) 2014 Denys Telezhkin. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
 #import "DTStorageProtocol.h"
 
 static NSString * const DTTableViewElementSectionHeader = @"DTTableViewElementSectionHeader";
@@ -17,6 +16,11 @@ static NSString * const DTTableViewElementSectionFooter = @"DTTableViewElementSe
  */
 
 @interface DTBaseStorage : NSObject
+
+/**
+ *  For Debug use
+ */
+@property (nonatomic, strong) NSString* name;
 
 /**
  Supplementary header kind, that is used for registration and mapping. For example, for UICollectionView this should be UICollectionElementKindSectionHeader.
