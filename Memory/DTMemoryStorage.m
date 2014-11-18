@@ -28,7 +28,6 @@
 #import "DTStorageUpdate.h"
 #import "DTSectionModel.h"
 #import "DTRuntimeHelper.h"
-#import "ANTableViewControllerHeader.h"
 
 @interface DTMemoryStorage ()
 
@@ -79,7 +78,7 @@
 }
 
 
-- (void)batchUpdateWithBlock:(CDCodeBlock)block
+- (void)batchUpdateWithBlock:(ANCodeBlock)block
 {
     [self startUpdate];
     self.isBatchUpdateCreating = YES;
@@ -169,7 +168,7 @@
     [self finishUpdate];
 }
 
-- (void)insertItem:(id)item toIndexPath:(NSIndexPath *)indexPath
+- (void)addItem:(id)item atIndexPath:(NSIndexPath *)indexPath
 {
     [self startUpdate];
     // Update datasource

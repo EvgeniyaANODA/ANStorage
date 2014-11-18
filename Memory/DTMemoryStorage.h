@@ -25,145 +25,64 @@
 
 #import "DTBaseStorage.h"
 #import "DTSectionModel.h"
-
-/**
- This class is used to store data models in memory. Generally, for datasource based UI controls, good pattern is to update datasource first, and then update it's UI representation. Updating datasource in current case means calling one of the add/remove/insert etc. methods. Updating UI is outside the scope of current class and is something storage delegate can do, by responding to `performUpdate:` method.
- 
- `DTMemoryStorage` stores data models like array of `DTSectionModel` instances. So it's basically array of sections, where each section has an array of objects, and any supplementary models, that further describe current section, and can be used, for example, like section headers and footers.
- */
+#import "ANTableControllerHeader.h"
 
 @interface DTMemoryStorage : DTBaseStorage <DTStorageProtocol>
 
-/**
- Creates `DTMemoryStorage` with default configuration.
- 
- @return DTMemoryStorage instance
- */
+@property (nonatomic, strong) NSMutableArray * sections;
 
 +(instancetype)storage;
 
-@property (nonatomic, strong) NSMutableArray * sections;
-
-- (void)batchUpdateWithBlock:(CDCodeBlock)block;
+- (void)batchUpdateWithBlock:(ANCodeBlock)block;
 
 
-/**
- Add item to section 0.
- 
- @param item Model you want to add
- */
--(void)addItem:(id)item;
+#pragma mark - Items
 
-/**
- Add item to section with `sectionNumber`.
- 
- @param item Model to add.
- 
- @param sectionNumber Section, where item will be added
- */
--(void)addItem:(id)item toSection:(NSUInteger)sectionNumber;
 
-/**
- Add items to section 0.
- 
- @param items models to add.
- */
--(void)addItems:(NSArray *)items;
+#pragma mark - Adding Items
 
-/**
- Add items to section with `sectionNumber`.
- 
- @param items Models to add.
- 
- @param sectionNumber Section, where items will be added
- */
--(void)addItems:(NSArray *)items toSection:(NSUInteger)sectionNumber;
+// Add item to section 0.
+- (void)addItem:(id)item;
 
-/**
- Insert item to indexPath `indexPath`.
- 
- @param item model to insert.
- 
- @param indexPath Index, where item should be inserted.
- 
- @warning Inserting item at index, that is not occupied, will not throw an exception, and won't do anything, except logging into console about failure
- */
--(void)insertItem:(id)item toIndexPath:(NSIndexPath *)indexPath;
+// Add items to section 0.
+- (void)addItems:(NSArray*)items;
 
-///---------------------------------------
-/// @name Reloading, remove, replace items
-///---------------------------------------
+- (void)addItem:(id)item toSection:(NSUInteger)sectionIndex;
+- (void)addItems:(NSArray*)items toSection:(NSUInteger)sectionIndex;
 
-/**
- Calling this method causes storage update, that has indexPath of the item in updatedRowIndexPaths property. If storage delegate responds to update, it may proceed with some actions, for example, reload cell, that displays current model.
- 
- @param item model, which needs to be reloaded in the cell
- */
--(void)reloadItem:(id)item;
+- (void)addItem:(id)item atIndexPath:(NSIndexPath *)indexPath;
 
-/**
- Removing item. If item is not found, this method does nothing.
- 
- @param item Model object you want to remove.
- */
+
+#pragma mark - Reloading Items
+
+- (void)reloadItem:(id)item;
+
+
+#pragma mark - Removing Items
+
 - (void)removeItem:(id)item;
-
-/**
- Removing item at desired indexPath. If number of objects in section is less that indexPath's item, this method does nothing.
- 
- @param indexPath Location of item you wish to remove.
- */
 - (void)removeItemsAtIndexPaths:(NSArray *)indexPaths;
 
-/**
- Removing items. If some item is not found, it is skipped.
- 
- @param items Models you want to remove.
- */
-- (void)removeItems:(NSArray *)items;
+// Removing items. If some item is not found, it is skipped.
+- (void)removeItems:(NSArray*)items;
 
-/**
- Replace itemToReplace with replacingItem. If itemToReplace is not found, or replacingItem is nil, this method does nothing.
- 
- @param itemToReplace Model object you want to replace.
- 
- @param replacingItem Model object you are replacing it with.
- */
+
+#pragma mark - Changing and Reorder Items
+
+// Replace itemToReplace with replacingItem. If itemToReplace is not found, or replacingItem is nil, this method does nothing.
 - (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem;
-
 
 - (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath;
 
 
-///---------------------------------------
-/// @name Managing sections
-///-------------------------------------
 
-/**
- Deletes one or more sections.
- 
- @param indexSet An index set that specifies the sections to delete.
- */
--(void)deleteSections:(NSIndexSet *)indexSet;
+#pragma mark - Sections
 
-/**
- Method to retrieve section model from memory storage. This method safely creates section, if it doesn't exist already.
- 
- If you change contents of section manually, delegate update methods do not get called.
- 
- @param sectionNumber Number of section to retrieve
- 
- @return DTSectionModel instance for current section
- */
-- (DTSectionModel *)sectionAtIndex:(NSUInteger)sectionNumber;
+- (void)deleteSections:(NSIndexSet*)indexSet;
+- (DTSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex;
 
-/**
- Set supplementary models of specific kind for sections. `DTSectionModel` objects are created automatically, if they don't exist already. Pass nil or empty array to this method to clear all section supplementary models.
- 
- @param supplementaryModels Section header models to use.
- 
- @param kind Kind of supplementary models
- */
+#pragma mark - Views Models
+
 - (void)setSupplementaries:(NSArray *)supplementaryModels forKind:(NSString *)kind;
 
 /**
@@ -172,46 +91,19 @@
  @param headerModels Section header models to use.
  */
 - (void)setSectionHeaderModels:(NSArray *)headerModels;
-
-/**
- Set header model for section. `DTSectionModel` object is created automatically, if it doesn't exist already.
- 
- @param headerModel Section header model to use.
- 
- @param sectionNumber Number of the section
- */
-- (void)setSectionHeaderModel:(id)headerModel forSectionIndex:(NSUInteger)sectionNumber;
-
-/**
- Set footer model for section. `DTSectionModel` object is created automatically, if it doesn't exist already.
- 
- @param footerModel Section header model to use.
- 
- @param sectionNumber Number of the section
- */
-- (void)setSectionFooterModel:(id)footerModel forSectionIndex:(NSUInteger)sectionNumber;
-
-/**
- Set footer models for sections. `headerKind` property is used to define kind of header supplementary. `DTSectionModel` objects are created automatically, if they don't exist already. Pass nil or empty array to this method to clear all section footer models.
- 
- @param footerModels Section footer models to use.
- */
 - (void)setSectionFooterModels:(NSArray *)footerModels;
 
-/**
- Remove all items in section and replace them with array of items. After replacement is done, storageNeedsReload delegate method is called.
- 
- @param items Array of models to replace current section contents
- 
- @param sectionNumber number of section
- */
+- (void)setSectionHeaderModel:(id)headerModel forSectionIndex:(NSUInteger)sectionIndex;
+- (void)setSectionFooterModel:(id)footerModel forSectionIndex:(NSUInteger)sectionIndex;
+
+
+
+// Remove all items in section and replace them with array of items. After replacement is done, storageNeedsReload delegate method is called.
+
 - (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex;
 
-///---------------------------------------
-/// @name Search
-///---------------------------------------
 
-typedef BOOL (^DTModelSearchingBlock)(id model, NSString * searchString, NSInteger searchScope, DTSectionModel * section);
+#pragma mark - Search
 
 /**
  Use this method to add rules for storage to filter models, when using, for example, UISearchBar. This method works similar to deprecated `DTModelSearching` protocol and is a direct replacement for it.
@@ -220,17 +112,16 @@ typedef BOOL (^DTModelSearchingBlock)(id model, NSString * searchString, NSInteg
  
  @param modelClass Class of the model, which will use searchingBlock.
  */
--(void)setSearchingBlock:(DTModelSearchingBlock)searchingBlock
-           forModelClass:(Class)modelClass;
+- (void)setSearchingBlock:(DTModelSearchingBlock)searchingBlock forModelClass:(Class)modelClass;
 
 /**
  Returns array with items in section.
  
- @param sectionNumber Number of the section.
+ @param sectionIndex Number of the section.
  
  @return array of items in section. If section does not exist - nil.
  */
--(NSArray *)itemsInSection:(NSUInteger)sectionNumber;
+-(NSArray *)itemsInSection:(NSUInteger)sectionIndex;
 
 /**
  If item exists at `indexPath`, it will be returned. If section or row does not exist, method will return `nil`.
