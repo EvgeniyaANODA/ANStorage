@@ -29,6 +29,8 @@
 
 @interface DTStorageUpdate : NSObject
 
+@property (nonatomic, assign) BOOL isProcessing;
+
 /**
  Indexes of deleted sections for current update.
  */
@@ -61,5 +63,6 @@
 
 
 @property (nonatomic, strong) NSMutableArray* movedRowsIndexPaths;
+
 
 @end

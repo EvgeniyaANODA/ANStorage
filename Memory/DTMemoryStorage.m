@@ -31,8 +31,13 @@
 #import "ANTableViewControllerHeader.h"
 
 @interface DTMemoryStorage ()
+
+@property (nonatomic, strong) NSOperationQueue* updateQueues;
+
 @property (nonatomic, strong) DTStorageUpdate * currentUpdate;
 @property (nonatomic, retain) NSMutableDictionary * searchingBlocks;
+@property (nonatomic, assign) BOOL isBatchUpdateCreating;
+
 @end
 
 @implementation DTMemoryStorage
@@ -71,6 +76,367 @@
     }
     
     return [sectionModel.objects objectAtIndex:indexPath.row];
+}
+
+
+- (void)batchUpdateWithBlock:(CDCodeBlock)block
+{
+    [self startUpdate];
+    self.isBatchUpdateCreating = YES;
+    if (block)
+    {
+        block();
+    }
+    self.isBatchUpdateCreating = NO;
+    [self finishUpdate];
+}
+
+#pragma mark - Holy shit
+
+
+- (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex
+{
+    DTSectionModel * section = [self sectionAtIndex:sectionIndex];
+    [section.objects removeAllObjects];
+    [section.objects addObjectsFromArray:items];
+    self.currentUpdate = nil; // no update if storage reloading
+    [self.delegate storageNeedsReload];
+}
+
+
+#pragma mark - Updates
+
+- (void)startUpdate
+{
+    if (!self.isBatchUpdateCreating)
+    {
+        self.currentUpdate = [DTStorageUpdate new];
+    }
+}
+
+- (void)finishUpdate
+{
+    if (!self.isBatchUpdateCreating)
+    {
+        if ([self.delegate respondsToSelector:@selector(storageDidPerformUpdate:)])
+        {
+            DTStorageUpdate* update = self.currentUpdate; //for hanling nilling
+            [self.delegate storageDidPerformUpdate:update];
+        }
+        self.currentUpdate = nil;
+    }
+}
+
+#pragma mark - Adding items
+
+- (void)addItem:(id)item
+{
+    [self addItem:item toSection:0];
+}
+
+- (void)addItem:(id)item toSection:(NSUInteger)sectionNumber
+{
+    [self startUpdate];
+    
+    DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+    NSUInteger numberOfItems = [section numberOfObjects];
+    [section.objects addObject:item];
+    [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
+                                                                           inSection:sectionNumber]];
+    
+    [self finishUpdate];
+}
+
+- (void)addItems:(NSArray *)items
+{
+    [self addItems:items toSection:0];
+}
+
+- (void)addItems:(NSArray *)items toSection:(NSUInteger)sectionNumber
+{
+    [self startUpdate];
+    
+    DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+    
+    for (id item in items)
+    {
+        NSUInteger numberOfItems = [section numberOfObjects];
+        [section.objects addObject:item];
+        [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
+                                                                               inSection:sectionNumber]];
+    }
+    
+    [self finishUpdate];
+}
+
+- (void)insertItem:(id)item toIndexPath:(NSIndexPath *)indexPath
+{
+    [self startUpdate];
+    // Update datasource
+    DTSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+    
+    if ([section.objects count] < indexPath.row)
+    {
+        ANLog(@"DTMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
+              (long)indexPath.section,
+              (long)indexPath.row,
+              (unsigned long)[section.objects count]);
+        return;
+    }
+    [section.objects insertObject:item atIndex:indexPath.row];
+    
+    [self.currentUpdate.insertedRowIndexPaths addObject:indexPath];
+    
+    [self finishUpdate];
+}
+
+- (void)reloadItem:(id)item
+{
+    [self startUpdate];
+    
+    NSIndexPath * indexPathToReload = [self indexPathForItem:item];
+    
+    if (indexPathToReload)
+    {
+        [self.currentUpdate.updatedRowIndexPaths addObject:indexPathToReload];
+    }
+    
+    [self finishUpdate];
+}
+
+- (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath
+{
+    //TODO: add safely
+    DTSectionModel * fromSection = [self sections][fromIndexPath.section];
+    DTSectionModel * toSection = [self sections][toIndexPath.section];
+    id tableItem = fromSection.objects[fromIndexPath.row];
+    
+    [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
+    [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
+}
+
+- (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem
+{
+    [self startUpdate];
+    
+    NSIndexPath * originalIndexPath = [self indexPathForItem:itemToReplace];
+    if (originalIndexPath && replacingItem)
+    {
+        DTSectionModel * section = [self createSectionIfNotExist:originalIndexPath.section];
+        
+        [section.objects replaceObjectAtIndex:originalIndexPath.row
+                                   withObject:replacingItem];
+    }
+    else
+    {
+        ANLog(@"DTMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
+        return;
+    }
+    [self.currentUpdate.updatedRowIndexPaths addObject:originalIndexPath];
+    
+    [self finishUpdate];
+}
+
+#pragma mark - Removing items
+
+- (void)removeItem:(id)item
+{
+    [self startUpdate];
+    
+    NSIndexPath * indexPath = [self indexPathForItem:item];
+    
+    if (indexPath)
+    {
+        DTSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+        [section.objects removeObjectAtIndex:indexPath.row];
+    }
+    else
+    {
+        ANLog(@"DTMemoryStorage: item to delete: %@ was not found", item);
+        return;
+    }
+    [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
+    [self finishUpdate];
+}
+
+- (void)removeItemsAtIndexPaths:(NSArray *)indexPaths
+{
+    [self startUpdate];
+    for (NSIndexPath * indexPath in indexPaths)
+    {
+        id object = [self objectAtIndexPath:indexPath];
+        
+        if (object)
+        {
+            DTSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+            [section.objects removeObjectAtIndex:indexPath.row];
+            [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
+        }
+        else
+        {
+            ANLog(@"DTMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
+        }
+    }
+    [self finishUpdate];
+}
+
+- (void)removeItems:(NSArray *)items
+{
+    [self startUpdate];
+    
+    NSMutableArray* indexPaths = [NSMutableArray array]; // TODO: set mb?
+    
+    [items enumerateObjectsUsingBlock:^(id item, NSUInteger idx, BOOL *stop) {
+       
+        NSIndexPath* indexPath = [self indexPathForItem:item];
+        
+        if (indexPath)
+        {
+            DTSectionModel* section = self.sections[indexPath.section];
+            [section.objects removeObjectAtIndex:indexPath.row];
+        }
+    }];
+    
+    [self.currentUpdate.deletedRowIndexPaths addObjectsFromArray:indexPaths];
+    [self finishUpdate];
+}
+
+#pragma  mark - Sections
+
+- (void)deleteSections:(NSIndexSet *)indexSet
+{
+    // add safety
+    [self startUpdate];
+    
+    ANLog(@"Deleting Sections... \n%@", indexSet);
+    [self.sections removeObjectsAtIndexes:indexSet];
+    [self.currentUpdate.deletedSectionIndexes addIndexes:indexSet];
+    
+    [self finishUpdate];
+}
+
+#pragma mark - Search
+
+- (NSArray *)itemsInSection:(NSUInteger)sectionNumber
+{
+    NSArray* objects;
+    if ([self.sections count] > sectionNumber)
+    {
+        DTSectionModel * section = self.sections[sectionNumber];
+        objects = [section objects];
+    }
+    return objects;
+}
+
+- (id)itemAtIndexPath:(NSIndexPath *)indexPath
+{
+    id object = nil;
+    if (indexPath.section < [self.sections count])
+    {
+        NSArray* section = [self itemsInSection:indexPath.section];
+        if (indexPath.row < [section count])
+        {
+            object = [section objectAtIndex:indexPath.row];
+        }
+        else
+        {
+            ANLog(@"DTMemoryStorage: Row not found while searching for item");
+        }
+    }
+    else
+    {
+        ANLog(@"DTMemoryStorage: Section not found while searching for item");
+    }
+    return object;
+}
+
+- (NSIndexPath *)indexPathForItem:(id)item
+{
+    __block NSIndexPath* foundedIndexPath = nil;
+    
+    [self.sections enumerateObjectsUsingBlock:^(id obj, NSUInteger sectionIndex, BOOL *stop) {
+        
+        if ([obj respondsToSelector:@selector(objects)])
+        {
+            NSArray * rows = [obj objects];
+            NSUInteger index = [rows indexOfObject:item];
+            if (index != NSNotFound)
+            {
+                foundedIndexPath = [NSIndexPath indexPathForRow:index inSection:sectionIndex];
+                *stop = YES;
+            }
+        }
+    }];
+
+    return foundedIndexPath;
+}
+
+- (DTSectionModel *)sectionAtIndex:(NSUInteger)sectionNumber
+{
+    [self startUpdate];
+    DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+    [self finishUpdate];
+    
+    return section;
+}
+
+#pragma mark - private
+
+- (DTSectionModel *)createSectionIfNotExist:(NSUInteger)sectionNumber
+{
+    if (sectionNumber < self.sections.count)
+    {
+        return self.sections[sectionNumber];
+    }
+    else
+    {
+        for (int sectionIterator = self.sections.count; sectionIterator <= sectionNumber; sectionIterator++)
+        {
+            DTSectionModel * section = [DTSectionModel new];
+            [self.sections addObject:section];
+            ANLog(@"Section %d not exist, creating...", sectionIterator);
+            [self.currentUpdate.insertedSectionIndexes addIndex:sectionIterator];
+        }
+        return [self.sections lastObject];
+    }
+}
+
+//This implementation is not optimized, and may behave poorly with lot of sections
+- (NSArray *)indexPathArrayForItems:(NSArray *)items
+{
+    NSMutableArray * indexPaths = [[NSMutableArray alloc] initWithCapacity:[items count]];
+    
+    for (NSInteger i = 0; i < [items count]; i++)
+    {
+        NSIndexPath * foundIndexPath = [self indexPathForItem:[items objectAtIndex:i]];
+        if (!foundIndexPath)
+        {
+            ANLog(@"DTMemoryStorage: object %@ not found", [items objectAtIndex:i]);
+        }
+        else
+        {
+            [indexPaths addObject:foundIndexPath];
+        }
+    }
+    return indexPaths;
+}
+
+
+
+#pragma mark - Views
+
+-(void)setSectionHeaderModels:(NSArray *)headerModels
+{
+    NSAssert(self.supplementaryHeaderKind, @"Please set supplementaryHeaderKind property before setting section header models");
+    
+    [self setSupplementaries:headerModels forKind:self.supplementaryHeaderKind];
+}
+
+- (void)setSectionFooterModels:(NSArray *)footerModels
+{
+    NSAssert(self.supplementaryFooterKind, @"Please set supplementaryFooterKind property before setting section header models");
+    
+    [self setSupplementaries:footerModels forKind:self.supplementaryFooterKind];
 }
 
 - (id)supplementaryModelOfKind:(NSString *)kind forSectionIndex:(NSUInteger)sectionNumber
@@ -132,7 +498,7 @@
         }
         return;
     }
-    [self getValidSection:([supplementaryModels count] - 1)];
+    [self createSectionIfNotExist:([supplementaryModels count] - 1)];
     
     for (NSUInteger sectionNumber = 0; sectionNumber < [supplementaryModels count]; sectionNumber++)
     {
@@ -142,27 +508,6 @@
     [self finishUpdate];
 }
 
-- (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex
-{
-    DTSectionModel * section = [self sectionAtIndex:sectionIndex];
-    [section.objects removeAllObjects];
-    [section.objects addObjectsFromArray:items];
-    [self.delegate storageNeedsReload];
-}
-
--(void)setSectionHeaderModels:(NSArray *)headerModels
-{
-    NSAssert(self.supplementaryHeaderKind, @"Please set supplementaryHeaderKind property before setting section header models");
-    
-    [self setSupplementaries:headerModels forKind:self.supplementaryHeaderKind];
-}
-
-- (void)setSectionFooterModels:(NSArray *)footerModels
-{
-    NSAssert(self.supplementaryFooterKind, @"Please set supplementaryFooterKind property before setting section header models");
-    
-    [self setSupplementaries:footerModels forKind:self.supplementaryFooterKind];
-}
 
 #pragma mark - search
 
@@ -225,312 +570,6 @@
     return nil;
 }
 
-#pragma mark - Updates
 
-- (void)startUpdate
-{
-    self.currentUpdate = [DTStorageUpdate new];
-}
-
-- (void)finishUpdate
-{
-    if ([self.delegate respondsToSelector:@selector(storageDidPerformUpdate:)])
-    {
-        [self.delegate storageDidPerformUpdate:self.currentUpdate];
-    }
-    self.currentUpdate = nil;
-}
-
-#pragma mark - Adding items
-
-- (void)addItem:(id)item
-{
-    [self addItem:item toSection:0];
-}
-
-- (void)addItem:(id)item toSection:(NSUInteger)sectionNumber
-{
-    [self startUpdate];
-    
-    DTSectionModel * section = [self getValidSection:sectionNumber];
-    NSUInteger numberOfItems = [section numberOfObjects];
-    [section.objects addObject:item];
-    [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
-                                                                           inSection:sectionNumber]];
-    
-    [self finishUpdate];
-}
-
-- (void)addItems:(NSArray *)items
-{
-    [self addItems:items toSection:0];
-}
-
-- (void)addItems:(NSArray *)items toSection:(NSUInteger)sectionNumber
-{
-    [self startUpdate];
-    
-    DTSectionModel * section = [self getValidSection:sectionNumber];
-    
-    for (id item in items)
-    {
-        NSUInteger numberOfItems = [section numberOfObjects];
-        [section.objects addObject:item];
-        [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
-                                                                               inSection:sectionNumber]];
-    }
-    
-    [self finishUpdate];
-}
-
-- (void)insertItem:(id)item toIndexPath:(NSIndexPath *)indexPath
-{
-    [self startUpdate];
-    // Update datasource
-    DTSectionModel * section = [self getValidSection:indexPath.section];
-    
-    if ([section.objects count] < indexPath.row)
-    {
-        ANLog(@"DTMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
-              (long)indexPath.section,
-              (long)indexPath.row,
-              (unsigned long)[section.objects count]);
-        return;
-    }
-    [section.objects insertObject:item atIndex:indexPath.row];
-    
-    [self.currentUpdate.insertedRowIndexPaths addObject:indexPath];
-    
-    [self finishUpdate];
-}
-
-- (void)reloadItem:(id)item
-{
-    [self startUpdate];
-    
-    NSIndexPath * indexPathToReload = [self indexPathForItem:item];
-    
-    if (indexPathToReload)
-    {
-        [self.currentUpdate.updatedRowIndexPaths addObject:indexPathToReload];
-    }
-    
-    [self finishUpdate];
-}
-
-- (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath
-{
-    DTSectionModel * fromSection = [self sections][fromIndexPath.section];
-    DTSectionModel * toSection = [self sections][toIndexPath.section];
-    id tableItem = fromSection.objects[fromIndexPath.row];
-    
-    [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
-    [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
-}
-
-- (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem
-{
-    [self startUpdate];
-    
-    NSIndexPath * originalIndexPath = [self indexPathForItem:itemToReplace];
-    if (originalIndexPath && replacingItem)
-    {
-        DTSectionModel * section = [self getValidSection:originalIndexPath.section];
-        
-        [section.objects replaceObjectAtIndex:originalIndexPath.row
-                                   withObject:replacingItem];
-    }
-    else
-    {
-        ANLog(@"DTMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
-        return;
-    }
-    
-    [self.currentUpdate.updatedRowIndexPaths addObject:originalIndexPath];
-    
-    [self finishUpdate];
-}
-
-#pragma mark - Removing items
-
-- (void)removeItem:(id)item
-{
-    [self startUpdate];
-    
-    NSIndexPath * indexPath = [self indexPathForItem:item];
-    
-    if (indexPath)
-    {
-        DTSectionModel * section = [self getValidSection:indexPath.section];
-        [section.objects removeObjectAtIndex:indexPath.row];
-    }
-    else
-    {
-        ANLog(@"DTMemoryStorage: item to delete: %@ was not found", item);
-        return;
-    }
-    [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
-    [self finishUpdate];
-}
-
-- (void)removeItemsAtIndexPaths:(NSArray *)indexPaths
-{
-    [self startUpdate];
-    for (NSIndexPath * indexPath in indexPaths)
-    {
-        id object = [self objectAtIndexPath:indexPath];
-        
-        if (object)
-        {
-            DTSectionModel * section = [self getValidSection:indexPath.section];
-            [section.objects removeObjectAtIndex:indexPath.row];
-            [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
-        }
-        else
-        {
-            ANLog(@"DTMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
-        }
-    }
-    [self finishUpdate];
-}
-
-- (void)removeItems:(NSArray *)items
-{
-    [self startUpdate];
-    
-    NSArray * indexPaths = [self indexPathArrayForItems:items];
-    
-    for (NSObject * item in items)
-    {
-        NSIndexPath * indexPath = [self indexPathForItem:item];
-        
-        if (indexPath)
-        {
-            DTSectionModel * section = [self getValidSection:indexPath.section];
-            [section.objects removeObjectAtIndex:indexPath.row];
-        }
-    }
-    [self.currentUpdate.deletedRowIndexPaths addObjectsFromArray:indexPaths];
-    [self finishUpdate];
-}
-
-#pragma  mark - Sections
-
-- (void)deleteSections:(NSIndexSet *)indexSet
-{
-    [self startUpdate];
-    // Update datasource
-    [self.sections removeObjectsAtIndexes:indexSet];
-    
-    // Update interface
-    [self.currentUpdate.deletedSectionIndexes addIndexes:indexSet];
-    
-    [self finishUpdate];
-}
-
-#pragma mark - Search
-
-- (NSArray *)itemsInSection:(NSUInteger)sectionNumber
-{
-    if ([self.sections count] > sectionNumber)
-    {
-        DTSectionModel * section = self.sections[sectionNumber];
-        return [section objects];
-    }
-    else
-    {
-        return nil;
-    }
-}
-
-- (id)itemAtIndexPath:(NSIndexPath *)indexPath
-{
-    NSArray * section = nil;
-    if (indexPath.section < [self.sections count])
-    {
-        section = [self itemsInSection:indexPath.section];
-    }
-    else
-    {
-        ANLog(@"DTMemoryStorage: Section not found while searching for item");
-        return nil;
-    }
-    
-    
-    if (indexPath.row < [section count])
-    {
-        return [section objectAtIndex:indexPath.row];
-    }
-    else
-    {
-        ANLog(@"DTMemoryStorage: Row not found while searching for item");
-        return nil;
-    }
-}
-
-- (NSIndexPath *)indexPathForItem:(id)item
-{
-    for (NSUInteger sectionNumber = 0; sectionNumber < self.sections.count; sectionNumber++)
-    {
-        NSArray * rows = [self.sections[sectionNumber] objects];
-        NSUInteger index = [rows indexOfObject:item];
-        
-        if (index != NSNotFound)
-        {
-            return [NSIndexPath indexPathForRow:index inSection:sectionNumber];
-        }
-    }
-    return nil;
-}
-
-- (DTSectionModel *)sectionAtIndex:(NSUInteger)sectionNumber
-{
-    [self startUpdate];
-    DTSectionModel * section = [self getValidSection:sectionNumber];
-    [self finishUpdate];
-    
-    return section;
-}
-
-#pragma mark - private
-
-- (DTSectionModel *)getValidSection:(NSUInteger)sectionNumber
-{
-    if (sectionNumber < self.sections.count)
-    {
-        return self.sections[sectionNumber];
-    }
-    else
-    {
-        for (NSInteger i = self.sections.count; i <= sectionNumber; i++)
-        {
-            DTSectionModel * section = [DTSectionModel new];
-            [self.sections addObject:section];
-            
-            [self.currentUpdate.insertedSectionIndexes addIndex:i];
-        }
-        return [self.sections lastObject];
-    }
-}
-
-//This implementation is not optimized, and may behave poorly with lot of sections
-- (NSArray *)indexPathArrayForItems:(NSArray *)items
-{
-    NSMutableArray * indexPaths = [[NSMutableArray alloc] initWithCapacity:[items count]];
-    
-    for (NSInteger i = 0; i < [items count]; i++)
-    {
-        NSIndexPath * foundIndexPath = [self indexPathForItem:[items objectAtIndex:i]];
-        if (!foundIndexPath)
-        {
-            ANLog(@"DTMemoryStorage: object %@ not found", [items objectAtIndex:i]);
-        }
-        else
-        {
-            [indexPaths addObject:foundIndexPath];
-        }
-    }
-    return indexPaths;
-}
 
 @end
