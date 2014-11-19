@@ -135,15 +135,18 @@
 
 - (void)addItem:(id)item toSection:(NSUInteger)sectionNumber
 {
-    [self startUpdate];
-    
-    DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
-    NSUInteger numberOfItems = [section numberOfObjects];
-    [section.objects addObject:item];
-    [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
-                                                                           inSection:sectionNumber]];
-    
-    [self finishUpdate];
+    if (item)
+    {
+        [self startUpdate];
+        
+        DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+        NSUInteger numberOfItems = [section numberOfObjects];
+        [section.objects addObject:item];
+        [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
+                                                                               inSection:sectionNumber]];
+        
+        [self finishUpdate];
+    }
 }
 
 - (void)addItems:(NSArray *)items
