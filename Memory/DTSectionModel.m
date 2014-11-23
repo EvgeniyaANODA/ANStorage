@@ -26,7 +26,9 @@
 #import "DTSectionModel.h"
 
 @interface DTSectionModel ()
+
 @property (nonatomic, strong) NSMutableDictionary * supplementaries;
+
 @end
 
 @implementation DTSectionModel

@@ -24,7 +24,7 @@
 // THE SOFTWARE.
 
 #import "DTCoreDataStorage.h"
-#import "DTStorageMovedIndexPath.h"
+#import "ANStorageMovedIndexPath.h"
 
 @interface DTCoreDataStorage ()
 
@@ -149,7 +149,7 @@
             
         if (isCorrectMove && self.useMovingRows)
         {
-            DTStorageMovedIndexPath* move = [DTStorageMovedIndexPath new];
+            ANStorageMovedIndexPath* move = [ANStorageMovedIndexPath new];
             move.fromIndexPath = indexPath;
             move.toIndexPath = newIndexPath;
             [self.currentUpdate.movedRowsIndexPaths addObject:move];
