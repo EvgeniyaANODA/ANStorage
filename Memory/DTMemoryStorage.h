@@ -27,6 +27,8 @@
 #import "DTSectionModel.h"
 #import "ANTableControllerHeader.h"
 
+typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSInteger scope);
+
 @interface DTMemoryStorage : DTBaseStorage <DTStorageProtocol>
 
 @property (nonatomic, strong) NSMutableArray * sections;
@@ -102,44 +104,15 @@
 
 - (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex;
 
+#pragma mark - Get Items
 
-#pragma mark - Search
+- (NSArray *)itemsInSection:(NSUInteger)sectionIndex;
+- (id)itemAtIndexPath:(NSIndexPath *)indexPath;
+- (NSIndexPath *)indexPathForItem:(id)item;
 
-/**
- Use this method to add rules for storage to filter models, when using, for example, UISearchBar. This method works similar to deprecated `DTModelSearching` protocol and is a direct replacement for it.
- 
- @param searchingBlock Block, that will be executed for all models of modelClass class to filter models for current criteria.
- 
- @param modelClass Class of the model, which will use searchingBlock.
- */
-- (void)setSearchingBlock:(DTModelSearchingBlock)searchingBlock forModelClass:(Class)modelClass;
 
-/**
- Returns array with items in section.
- 
- @param sectionIndex Number of the section.
- 
- @return array of items in section. If section does not exist - nil.
- */
--(NSArray *)itemsInSection:(NSUInteger)sectionIndex;
+#pragma mark - Searching
 
-/**
- If item exists at `indexPath`, it will be returned. If section or row does not exist, method will return `nil`.
- 
- @param indexPath Index of the item you wish to retrieve.
- 
- @return model at indexPath. If section or row does not exist - `nil`.
- */
-
--(id)itemAtIndexPath:(NSIndexPath *)indexPath;
-
-/**
- Searches for item and returns it's indexPath. If there are many equal items, indexPath of the first one will be returned.
- 
- @param item Item, position of which you wish to find.
- 
- @return indexPath of `item`.
- */
--(NSIndexPath *)indexPathForItem:(id)item;
+@property (nonatomic, copy) ANMemoryStoragePredicate storagePredicateBlock;
 
 @end

@@ -31,8 +31,6 @@
 
 @interface DTMemoryStorage ()
 
-@property (nonatomic, strong) NSOperationQueue* updateQueues;
-
 @property (nonatomic, strong) DTStorageUpdate * currentUpdate;
 @property (nonatomic, retain) NSMutableDictionary * searchingBlocks;
 @property (nonatomic, assign) BOOL isBatchUpdateCreating;
@@ -511,67 +509,30 @@
 }
 
 
-#pragma mark - search
-
-- (void)setSearchingBlock:(DTModelSearchingBlock)searchingBlock
-            forModelClass:(Class)modelClass
-{
-    NSParameterAssert(searchingBlock);
-    NSParameterAssert(modelClass);
-    
-    self.searchingBlocks[[DTRuntimeHelper modelStringForClass:modelClass]] = searchingBlock;
-}
-
 - (instancetype)searchingStorageForSearchString:(NSString *)searchString
                                   inSearchScope:(NSUInteger)searchScope
 {
-    DTMemoryStorage * storage = [[self class] storage
-                                 ];
+    DTMemoryStorage * storage = [[self class] storage];
     
-    for (NSUInteger sectionNumber = 0; sectionNumber < [self.sections count]; sectionNumber++)
+    NSPredicate* predicate;
+    if (self.storagePredicateBlock)
     {
-        DTSectionModel * searchSection = [self filterSection:self.sections[sectionNumber]
-                                            withSearchString:searchString
-                                                 searchScope:searchScope];
-        if (searchSection)
-        {
-            [storage.sections addObject:searchSection];
-        }
+        predicate = self.storagePredicateBlock(searchString, searchScope);
     }
-    storage.supplementaryHeaderKind = self.supplementaryHeaderKind;
-    storage.supplementaryFooterKind = self.supplementaryFooterKind;
     
+    if (predicate)
+    {
+        [self.sections enumerateObjectsUsingBlock:^(DTSectionModel* obj, NSUInteger idx, BOOL *stop) {
+            
+            NSArray* filteredObjects = [obj.objects filteredArrayUsingPredicate:predicate];
+            [storage addItems:filteredObjects toSection:idx];
+        }];
+    }
+    else
+    {
+        CDLogWarning(@"No predicate was created, so no searching. Check your setter for storagePredicateBlock");
+    }
     return storage;
 }
-
-- (DTSectionModel *)filterSection:(DTSectionModel *)section
-                 withSearchString:(NSString *)searchString
-                      searchScope:(NSInteger)searchScope
-{
-    NSMutableArray * searchResults = [NSMutableArray array];
-    for (NSUInteger row = 0; row < section.objects.count; row++)
-    {
-        NSObject * item = section.objects[row];
-        
-        if (self.searchingBlocks[[DTRuntimeHelper modelStringForClass:item.class]])
-        {
-            DTModelSearchingBlock block = self.searchingBlocks[[DTRuntimeHelper modelStringForClass:item.class]];
-            
-            if (block && block(item, searchString, searchScope, section))
-            {
-                [searchResults addObject:item];
-            }
-        }
-    }
-    if ([searchResults count])
-    {
-        DTSectionModel * searchSection = [section copy];
-        searchSection.objects = searchResults;
-        return searchSection;
-    }
-    return nil;
-}
-
-
 
 @end
