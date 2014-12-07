@@ -8,6 +8,7 @@
 
 #import "DTBaseStorage.h"
 #import "DTSectionModel.h"
+#import "ANHelperFunctions.h"
 
 typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSInteger scope);
 
