@@ -40,6 +40,7 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 
 #pragma mark - Items
 
+- (BOOL)hasItems;
 
 #pragma mark - Adding Items
 

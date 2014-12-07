@@ -88,6 +88,13 @@
     [self finishUpdate];
 }
 
+- (BOOL)hasItems
+{
+    //TODO: handle exeptions
+    NSNumber* count = [self.sections valueForKeyPath:@"@count"];
+    return [count boolValue];
+}
+
 #pragma mark - Holy shit
 
 
