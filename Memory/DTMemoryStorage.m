@@ -81,8 +81,12 @@
 - (BOOL)hasItems
 {
     //TODO: handle exeptions
-    NSNumber* count = [self.sections valueForKeyPath:@"@count"];
-    return [count boolValue];
+    //    NSNumber* count = [self.sections valueForKeyPath:@"objects.@count.numberOfObjects"];// TODO:
+    __block NSInteger totalCount = 0;
+    [self.sections enumerateObjectsUsingBlock:^(DTSectionModel* obj, NSUInteger idx, BOOL *stop) {
+        totalCount += obj.numberOfObjects;
+    }];
+    return [@(totalCount) boolValue];
 }
 
 #pragma mark - Holy shit
