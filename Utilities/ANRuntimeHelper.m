@@ -1,16 +1,15 @@
 //
-//  DTRuntimeHelper.m
-//  DTModelStorageTests
+//  ANRuntimeHelper.m
 //
-//  Created by Denys Telezhkin on 28.09.14.
-//  Copyright (c) 2014 Denys Telezhkin. All rights reserved.
+//  Created by Oksana Kovalchuk on 29/10/14.
+//  Copyright (c) 2014 ANODA. All rights reserved.
 //
 
-#import "DTRuntimeHelper.h"
+#import "ANRuntimeHelper.h"
 
-@implementation DTRuntimeHelper
+@implementation ANRuntimeHelper
 
-+(NSString *)classStringForClass:(Class)class
++ (NSString *)classStringForClass:(Class)class
 {
     NSString * classString = NSStringFromClass(class);
     if ([classString rangeOfString:@"."].location != NSNotFound)
@@ -21,7 +20,7 @@
     return classString;
 }
 
-+(NSString *)modelStringForClass:(Class)class
++ (NSString *)modelStringForClass:(Class)class
 {
     NSString * classString = [self classStringForClass:class];
     if ([classString isEqualToString:@"__NSCFConstantString"] ||

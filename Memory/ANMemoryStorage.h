@@ -1,18 +1,17 @@
 //
-//  DTMemoryStorage.h
-//  DTModelStorage
+//  ANCoreDataStorage.h
 //
-//  Created by Denys Telezhkin on 15.12.13.
-//  Copyright (c) 2013 Denys Telezhkin. All rights reserved.
+//  Created by Oksana Kovalchuk on 29/10/14.
+//  Copyright (c) 2014 ANODA. All rights reserved.
 //
 
-#import "DTBaseStorage.h"
-#import "DTSectionModel.h"
+#import "ANBaseStorage.h"
+#import "ANSectionModel.h"
 #import "ANHelperFunctions.h"
 
 typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSInteger scope);
 
-@interface DTMemoryStorage : DTBaseStorage <DTStorageProtocol>
+@interface ANMemoryStorage : ANBaseStorage <ANStorageInterface>
 
 @property (nonatomic, strong) NSMutableArray * sections;
 
@@ -51,7 +50,7 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 
 // Removing items. If some item is not found, it is skipped.
 - (void)removeItems:(NSArray*)items;
-
+- (void)removeAllItems;
 
 #pragma mark - Changing and Reorder Items
 
@@ -65,7 +64,7 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 #pragma mark - Sections
 
 - (void)deleteSections:(NSIndexSet*)indexSet;
-- (DTSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex;
+- (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex;
 
 #pragma mark - Views Models
 

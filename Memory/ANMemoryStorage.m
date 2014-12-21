@@ -1,9 +1,8 @@
 //
-//  DTMemoryStorage.m
-//  DTModelStorage
+//  ANCoreDataStorage.m
 //
-//  Created by Denys Telezhkin on 15.12.13.
-//  Copyright (c) 2013 Denys Telezhkin. All rights reserved.
+//  Created by Oksana Kovalchuk on 29/10/14.
+//  Copyright (c) 2014 ANODA. All rights reserved.
 //
 
 #ifdef AN_TABLE_LOG
@@ -13,25 +12,25 @@
 #endif
 #define ALog(...) NSLog(__VA_ARGS__)
 
-#import "DTMemoryStorage.h"
-#import "DTSection.h"
-#import "DTStorageUpdate.h"
-#import "DTSectionModel.h"
-#import "DTRuntimeHelper.h"
+#import "ANMemoryStorage.h"
+#import "ANSectionInterface.h"
+#import "ANStorageUpdate.h"
+#import "ANSectionModel.h"
+#import "ANRuntimeHelper.h"
 
-@interface DTMemoryStorage ()
+@interface ANMemoryStorage ()
 
-@property (nonatomic, strong) DTStorageUpdate * currentUpdate;
+@property (nonatomic, strong) ANStorageUpdate * currentUpdate;
 @property (nonatomic, retain) NSMutableDictionary * searchingBlocks;
 @property (nonatomic, assign) BOOL isBatchUpdateCreating;
 
 @end
 
-@implementation DTMemoryStorage
+@implementation ANMemoryStorage
 
 + (instancetype)storage
 {
-    DTMemoryStorage * storage = [self new];
+    ANMemoryStorage * storage = [self new];
     storage.sections = [NSMutableArray array];
     
     return storage;
@@ -48,7 +47,7 @@
 
 - (id)objectAtIndexPath:(NSIndexPath *)indexPath
 {
-    id <DTSection> sectionModel = nil;
+    id <ANSectionInterface> sectionModel = nil;
     if (indexPath.section >= self.sections.count)
     {
         return nil;
@@ -83,7 +82,7 @@
     //TODO: handle exeptions
     //    NSNumber* count = [self.sections valueForKeyPath:@"objects.@count.numberOfObjects"];// TODO:
     __block NSInteger totalCount = 0;
-    [self.sections enumerateObjectsUsingBlock:^(DTSectionModel* obj, NSUInteger idx, BOOL *stop) {
+    [self.sections enumerateObjectsUsingBlock:^(ANSectionModel* obj, NSUInteger idx, BOOL *stop) {
         totalCount += obj.numberOfObjects;
     }];
     return [@(totalCount) boolValue];
@@ -94,7 +93,7 @@
 
 - (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex
 {
-    DTSectionModel * section = [self sectionAtIndex:sectionIndex];
+    ANSectionModel * section = [self sectionAtIndex:sectionIndex];
     [section.objects removeAllObjects];
     [section.objects addObjectsFromArray:items];
     self.currentUpdate = nil; // no update if storage reloading
@@ -108,7 +107,7 @@
 {
     if (!self.isBatchUpdateCreating)
     {
-        self.currentUpdate = [DTStorageUpdate new];
+        self.currentUpdate = [ANStorageUpdate new];
     }
 }
 
@@ -118,7 +117,7 @@
     {
         if ([self.delegate respondsToSelector:@selector(storageDidPerformUpdate:)])
         {
-            DTStorageUpdate* update = self.currentUpdate; //for hanling nilling
+            ANStorageUpdate* update = self.currentUpdate; //for hanling nilling
             [self.delegate storageDidPerformUpdate:update];
         }
         self.currentUpdate = nil;
@@ -138,7 +137,7 @@
     {
         [self startUpdate];
         
-        DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+        ANSectionModel * section = [self createSectionIfNotExist:sectionNumber];
         NSUInteger numberOfItems = [section numberOfObjects];
         [section.objects addObject:item];
         [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
@@ -157,7 +156,7 @@
 {
     [self startUpdate];
     
-    DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+    ANSectionModel * section = [self createSectionIfNotExist:sectionNumber];
     
     for (id item in items)
     {
@@ -174,7 +173,7 @@
 {
     [self startUpdate];
     // Update datasource
-    DTSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+    ANSectionModel * section = [self createSectionIfNotExist:indexPath.section];
     
     if ([section.objects count] < indexPath.row)
     {
@@ -208,8 +207,8 @@
 - (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath
 {
     //TODO: add safely
-    DTSectionModel * fromSection = [self sections][fromIndexPath.section];
-    DTSectionModel * toSection = [self sections][toIndexPath.section];
+    ANSectionModel * fromSection = [self sections][fromIndexPath.section];
+    ANSectionModel * toSection = [self sections][toIndexPath.section];
     id tableItem = fromSection.objects[fromIndexPath.row];
     
     [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
@@ -223,7 +222,7 @@
     NSIndexPath * originalIndexPath = [self indexPathForItem:itemToReplace];
     if (originalIndexPath && replacingItem)
     {
-        DTSectionModel * section = [self createSectionIfNotExist:originalIndexPath.section];
+        ANSectionModel * section = [self createSectionIfNotExist:originalIndexPath.section];
         
         [section.objects replaceObjectAtIndex:originalIndexPath.row
                                    withObject:replacingItem];
@@ -248,7 +247,7 @@
     
     if (indexPath)
     {
-        DTSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+        ANSectionModel * section = [self createSectionIfNotExist:indexPath.section];
         [section.objects removeObjectAtIndex:indexPath.row];
     }
     else
@@ -269,7 +268,7 @@
         
         if (object)
         {
-            DTSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+            ANSectionModel * section = [self createSectionIfNotExist:indexPath.section];
             [section.objects removeObjectAtIndex:indexPath.row];
             [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
         }
@@ -293,13 +292,19 @@
         
         if (indexPath)
         {
-            DTSectionModel* section = self.sections[indexPath.section];
+            ANSectionModel* section = self.sections[indexPath.section];
             [section.objects removeObjectAtIndex:indexPath.row];
         }
     }];
     
     [self.currentUpdate.deletedRowIndexPaths addObjectsFromArray:indexPaths];
     [self finishUpdate];
+}
+
+- (void)removeAllItems
+{
+    [self.sections removeAllObjects];
+    [self.delegate storageNeedsReload];
 }
 
 #pragma  mark - Sections
@@ -323,7 +328,7 @@
     NSArray* objects;
     if ([self.sections count] > sectionNumber)
     {
-        DTSectionModel * section = self.sections[sectionNumber];
+        ANSectionModel * section = self.sections[sectionNumber];
         objects = [section objects];
     }
     return objects;
@@ -372,10 +377,10 @@
     return foundedIndexPath;
 }
 
-- (DTSectionModel *)sectionAtIndex:(NSUInteger)sectionNumber
+- (ANSectionModel *)sectionAtIndex:(NSUInteger)sectionNumber
 {
     [self startUpdate];
-    DTSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+    ANSectionModel * section = [self createSectionIfNotExist:sectionNumber];
     [self finishUpdate];
     
     return section;
@@ -383,7 +388,7 @@
 
 #pragma mark - private
 
-- (DTSectionModel *)createSectionIfNotExist:(NSUInteger)sectionNumber
+- (ANSectionModel *)createSectionIfNotExist:(NSUInteger)sectionNumber
 {
     if (sectionNumber < self.sections.count)
     {
@@ -391,9 +396,9 @@
     }
     else
     {
-        for (int sectionIterator = self.sections.count; sectionIterator <= sectionNumber; sectionIterator++)
+        for (NSInteger sectionIterator = self.sections.count; sectionIterator <= sectionNumber; sectionIterator++)
         {
-            DTSectionModel * section = [DTSectionModel new];
+            ANSectionModel * section = [ANSectionModel new];
             [self.sections addObject:section];
             ANLog(@"Section %d not exist, creating...", sectionIterator);
             [self.currentUpdate.insertedSectionIndexes addIndex:sectionIterator];
@@ -442,7 +447,7 @@
 
 - (id)supplementaryModelOfKind:(NSString *)kind forSectionIndex:(NSUInteger)sectionNumber
 {
-    DTSectionModel * sectionModel = nil;
+    ANSectionModel * sectionModel = nil;
     if (sectionNumber >= self.sections.count)
     {
         return nil;
@@ -458,7 +463,7 @@
 {
     NSAssert(self.supplementaryHeaderKind, @"supplementaryHeaderKind property was not set before calling setSectionHeaderModel: forSectionIndex: method");
     
-    DTSectionModel * section = [self sectionAtIndex:sectionNumber];
+    ANSectionModel * section = [self sectionAtIndex:sectionNumber];
     
     [section setSupplementaryModel:headerModel forKind:self.supplementaryHeaderKind];
 }
@@ -467,7 +472,7 @@
 {
     NSAssert(self.supplementaryFooterKind, @"supplementaryFooterKind property was not set before calling setSectionFooterModel: forSectionIndex: method");
     
-    DTSectionModel * section = [self sectionAtIndex:sectionNumber];
+    ANSectionModel * section = [self sectionAtIndex:sectionNumber];
     
     [section setSupplementaryModel:footerModel forKind:self.supplementaryFooterKind];
 }
@@ -493,7 +498,7 @@
     [self startUpdate];
     if (!supplementaryModels || [supplementaryModels count] == 0)
     {
-        for (DTSectionModel * section in self.sections)
+        for (ANSectionModel * section in self.sections)
         {
             [section setSupplementaryModel:nil forKind:kind];
         }
@@ -503,7 +508,7 @@
     
     for (NSUInteger sectionNumber = 0; sectionNumber < [supplementaryModels count]; sectionNumber++)
     {
-        DTSectionModel * section = self.sections[sectionNumber];
+        ANSectionModel * section = self.sections[sectionNumber];
         [section setSupplementaryModel:supplementaryModels[sectionNumber] forKind:kind];
     }
     [self finishUpdate];
@@ -513,7 +518,7 @@
 - (instancetype)searchingStorageForSearchString:(NSString *)searchString
                                   inSearchScope:(NSUInteger)searchScope
 {
-    DTMemoryStorage * storage = [[self class] storage];
+    ANMemoryStorage * storage = [[self class] storage];
     
     NSPredicate* predicate;
     if (self.storagePredicateBlock)
@@ -523,7 +528,7 @@
     
     if (predicate)
     {
-        [self.sections enumerateObjectsUsingBlock:^(DTSectionModel* obj, NSUInteger idx, BOOL *stop) {
+        [self.sections enumerateObjectsUsingBlock:^(ANSectionModel* obj, NSUInteger idx, BOOL *stop) {
             
             NSArray* filteredObjects = [obj.objects filteredArrayUsingPredicate:predicate];
             [storage addItems:filteredObjects toSection:idx];

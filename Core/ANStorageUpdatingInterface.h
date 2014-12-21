@@ -1,26 +1,24 @@
 //
-//  DTStorageUpdating.h
-//  DTModelStorageTests
+//  ANStorageUpdatingInterface.h
 //
-//  Created by Denys Telezhkin on 12.10.14.
-//  Copyright (c) 2014 Denys Telezhkin. All rights reserved.
+//  Created by Oksana Kovalchuk on 29/10/14.
+//  Copyright (c) 2014 ANODA. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-#import "DTStorageUpdate.h"
+@class ANStorageUpdate;
 
 /**
  `DTStorageUpdating` protocol is used to transfer data storage updates.
  */
 
-@protocol DTStorageUpdating <NSObject>
+@protocol ANStorageUpdatingInterface <NSObject>
 
 /**
  Transfers data storage updates. Controller, that implements this method, may react to received update by updating it's UI.
  
  @param update `DTStorageUpdate` instance, that incapsulates all changes, happened in data storage.
  */
-- (void)storageDidPerformUpdate:(DTStorageUpdate *)update;
+- (void)storageDidPerformUpdate:(ANStorageUpdate *)update;
 
 /**
  Method is called when UI needs to be fully updated for data storage changes.

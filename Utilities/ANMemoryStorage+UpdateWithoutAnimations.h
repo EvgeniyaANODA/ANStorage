@@ -1,14 +1,13 @@
 //
-//  DTMemoryStorage+UpdateWithoutAnimations.h
-//  DTModelStorageTests
+//  ANMemoryStorage+UpdateWithoutAnimations.h
 //
-//  Created by Denys Telezhkin on 03.03.14.
-//  Copyright (c) 2014 Denys Telezhkin. All rights reserved.
+//  Created by Oksana Kovalchuk on 29/10/14.
+//  Copyright (c) 2014 ANODA. All rights reserved.
 //
 
-#import "DTMemoryStorage.h"
+#import "ANMemoryStorage.h"
 
-@interface DTMemoryStorage (UpdateWithoutAnimations)
+@interface ANMemoryStorage (UpdateWithoutAnimations)
 
 /**
  This method allows multiple simultaneous changes to memory storage without any notifications for delegate. You can think of this as a way of "manual" management for memory storage. Typical usage would be multiple insertions/deletions etc., if you don't need any animations. You can batch any changes in block, and call reloadData on your UI component after this method was call.
