@@ -71,7 +71,7 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 - (void)setSupplementaries:(NSArray *)supplementaryModels forKind:(NSString *)kind;
 
 /**
- Set header models for sections. `DTSectionModel` objects are created automatically, if they don't exist already. Pass nil or empty array to this method to clear all section header models.
+ Set header models for sections. `ANSectionModel` objects are created automatically, if they don't exist already. Pass nil or empty array to this method to clear all section header models.
  
  @param headerModels Section header models to use.
  */

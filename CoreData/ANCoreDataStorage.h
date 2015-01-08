@@ -9,7 +9,7 @@
 @import CoreData;
 
 /**
- This class is used to provide CoreData storage. Storage object will automatically react to NSFetchResultsController changes and will call delegate with appropriate DTStorageUpdate object.
+ This class is used to provide CoreData storage. Storage object will automatically react to NSFetchResultsController changes and will call delegate with appropriate ANStorageUpdate object.
  */
 
 @interface ANCoreDataStorage : ANBaseStorage <NSFetchedResultsControllerDelegate, ANStorageInterface>

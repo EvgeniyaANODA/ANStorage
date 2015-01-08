@@ -177,7 +177,7 @@
     
     if ([section.objects count] < indexPath.row)
     {
-        ANLog(@"DTMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
+        ANLog(@"ANMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
               (long)indexPath.section,
               (long)indexPath.row,
               (unsigned long)[section.objects count]);
@@ -229,7 +229,7 @@
     }
     else
     {
-        ANLog(@"DTMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
+        ANLog(@"ANMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
         return;
     }
     [self.currentUpdate.updatedRowIndexPaths addObject:originalIndexPath];
@@ -252,7 +252,7 @@
     }
     else
     {
-        ANLog(@"DTMemoryStorage: item to delete: %@ was not found", item);
+        ANLog(@"ANMemoryStorage: item to delete: %@ was not found", item);
         return;
     }
     [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
@@ -274,7 +274,7 @@
         }
         else
         {
-            ANLog(@"DTMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
+            ANLog(@"ANMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
         }
     }
     [self finishUpdate];
@@ -346,12 +346,12 @@
         }
         else
         {
-            ANLog(@"DTMemoryStorage: Row not found while searching for item");
+            ANLog(@"ANMemoryStorage: Row not found while searching for item");
         }
     }
     else
     {
-        ANLog(@"DTMemoryStorage: Section not found while searching for item");
+        ANLog(@"ANMemoryStorage: Section not found while searching for item");
     }
     return object;
 }
@@ -417,7 +417,7 @@
         NSIndexPath * foundIndexPath = [self indexPathForItem:[items objectAtIndex:i]];
         if (!foundIndexPath)
         {
-            ANLog(@"DTMemoryStorage: object %@ not found", [items objectAtIndex:i]);
+            ANLog(@"ANMemoryStorage: object %@ not found", [items objectAtIndex:i]);
         }
         else
         {
