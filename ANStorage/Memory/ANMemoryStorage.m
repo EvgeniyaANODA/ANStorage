@@ -5,18 +5,12 @@
 //  Copyright (c) 2014 ANODA. All rights reserved.
 //
 
-#ifdef AN_TABLE_LOG
-#    define ANLog(...) NSLog(__VA_ARGS__)
-#else
-#    define ANLog(...) /* */
-#endif
-#define ALog(...) NSLog(__VA_ARGS__)
-
 #import "ANMemoryStorage.h"
 #import "ANSectionInterface.h"
 #import "ANStorageUpdate.h"
 #import "ANSectionModel.h"
 #import "ANRuntimeHelper.h"
+#import "ANLogger.h"
 
 @interface ANMemoryStorage ()
 
@@ -31,9 +25,16 @@
 + (instancetype)storage
 {
     ANMemoryStorage * storage = [self new];
-    storage.sections = [NSMutableArray array];
-    
     return storage;
+}
+
+- (NSMutableArray *)sections
+{
+    if (!_sections)
+    {
+        _sections = [NSMutableArray array];
+    }
+    return _sections;
 }
 
 - (NSMutableDictionary *)searchingBlocks
@@ -177,7 +178,7 @@
     
     if ([section.objects count] < indexPath.row)
     {
-        ANLog(@"ANMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
+        ANLogWarning(@"ANMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
               (long)indexPath.section,
               (long)indexPath.row,
               (unsigned long)[section.objects count]);
