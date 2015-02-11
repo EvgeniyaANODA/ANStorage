@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name     = 'ANStorage'
-  spec.version  = '1.0.3'
+  spec.version  = '1.0.4'
   spec.license  = { :type => 'MIT' }
   spec.homepage = 'https://github.com/anodamobi/ANStorage'
   spec.authors  = { 'Oksana Kovalchuk' => 'oksana@anoda.mobi' }
@@ -15,6 +15,7 @@ Pod::Spec.new do |spec|
   spec.requires_arc = true
 
   spec.dependency 'ANHelperFunctions', '~> 1.0'
+   spec.dependency 'ANLogger', '~> 1'
 
   spec.ios.deployment_target = '6.0'
 end
