@@ -10,7 +10,6 @@
 #import "ANStorageUpdate.h"
 #import "ANSectionModel.h"
 #import "ANRuntimeHelper.h"
-#import "ANLogger.h"
 
 @interface ANMemoryStorage ()
 
@@ -178,7 +177,7 @@
     
     if ([section.objects count] < indexPath.row)
     {
-        ANLogWarning(@"ANMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
+        NSLog(@"ANMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
               (long)indexPath.section,
               (long)indexPath.row,
               (unsigned long)[section.objects count]);
@@ -230,7 +229,7 @@
     }
     else
     {
-        ANLog(@"ANMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
+        NSLog(@"ANMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
         return;
     }
     [self.currentUpdate.updatedRowIndexPaths addObject:originalIndexPath];
@@ -253,7 +252,7 @@
     }
     else
     {
-        ANLog(@"ANMemoryStorage: item to delete: %@ was not found", item);
+        NSLog(@"ANMemoryStorage: item to delete: %@ was not found", item);
         return;
     }
     [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
@@ -275,7 +274,7 @@
         }
         else
         {
-            ANLog(@"ANMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
+            NSLog(@"ANMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
         }
     }
     [self finishUpdate];
@@ -315,7 +314,7 @@
     // add safety
     [self startUpdate];
     
-    ANLog(@"Deleting Sections... \n%@", indexSet);
+    NSLog(@"Deleting Sections... \n%@", indexSet);
     [self.sections removeObjectsAtIndexes:indexSet];
     [self.currentUpdate.deletedSectionIndexes addIndexes:indexSet];
     
@@ -347,12 +346,12 @@
         }
         else
         {
-            ANLog(@"ANMemoryStorage: Row not found while searching for item");
+            NSLog(@"ANMemoryStorage: Row not found while searching for item");
         }
     }
     else
     {
-        ANLog(@"ANMemoryStorage: Section not found while searching for item");
+        NSLog(@"ANMemoryStorage: Section not found while searching for item");
     }
     return object;
 }
@@ -401,7 +400,7 @@
         {
             ANSectionModel * section = [ANSectionModel new];
             [self.sections addObject:section];
-            ANLog(@"Section %d not exist, creating...", sectionIterator);
+            NSLog(@"Section %d not exist, creating...", sectionIterator);
             [self.currentUpdate.insertedSectionIndexes addIndex:sectionIterator];
         }
         return [self.sections lastObject];
@@ -418,7 +417,7 @@
         NSIndexPath * foundIndexPath = [self indexPathForItem:[items objectAtIndex:i]];
         if (!foundIndexPath)
         {
-            ANLog(@"ANMemoryStorage: object %@ not found", [items objectAtIndex:i]);
+            NSLog(@"ANMemoryStorage: object %@ not found", [items objectAtIndex:i]);
         }
         else
         {
@@ -537,7 +536,7 @@
     }
     else
     {
-        ANLog(@"No predicate was created, so no searching. Check your setter for storagePredicateBlock");
+        NSLog(@"No predicate was created, so no searching. Check your setter for storagePredicateBlock");
     }
     return storage;
 }
