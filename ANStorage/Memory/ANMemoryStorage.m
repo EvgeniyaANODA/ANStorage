@@ -211,8 +211,14 @@
     ANSectionModel * toSection = [self sections][toIndexPath.section];
     id tableItem = fromSection.objects[fromIndexPath.row];
     
-    [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
-    [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
+    if (fromIndexPath && toIndexPath) {
+        [self startUpdate];
+        
+        [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
+        [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
+        
+        [self finishUpdate];
+    }
 }
 
 - (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem
