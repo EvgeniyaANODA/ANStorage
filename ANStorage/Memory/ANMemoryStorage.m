@@ -10,6 +10,7 @@
 #import "ANStorageUpdate.h"
 #import "ANSectionModel.h"
 #import "ANRuntimeHelper.h"
+#import "ANStorageMovedIndexPath.h"
 
 @interface ANMemoryStorage ()
 
@@ -211,12 +212,19 @@
     ANSectionModel * toSection = [self sections][toIndexPath.section];
     id tableItem = fromSection.objects[fromIndexPath.row];
     
-    if (fromIndexPath && toIndexPath) {
+    if (fromIndexPath && toIndexPath)
+    {
         [self startUpdate];
         
         [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
         [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
         
+        ANStorageMovedIndexPath *path = [ANStorageMovedIndexPath new];
+        path.fromIndexPath = fromIndexPath;
+        path.toIndexPath = toIndexPath;
+        
+        [self.currentUpdate.movedRowsIndexPaths addObject:path];
+
         [self finishUpdate];
     }
 }
