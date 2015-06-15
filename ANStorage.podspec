@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name     = 'ANStorage'
-  spec.version  = '1.0.12'
+  spec.version  = '1.0.13'
   spec.license  = { :type => 'MIT' }
   spec.homepage = 'https://github.com/anodamobi/ANStorage'
   spec.authors  = { 'Oksana Kovalchuk' => 'oksana@anoda.mobi' }
