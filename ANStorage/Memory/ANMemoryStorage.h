@@ -65,6 +65,7 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 
 - (void)deleteSections:(NSIndexSet*)indexSet;
 - (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex;
+- (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex createIfNeeded:(BOOL)shouldCreate;
 
 #pragma mark - Views Models
 

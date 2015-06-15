@@ -94,7 +94,7 @@
 
 - (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex
 {
-    ANSectionModel * section = [self sectionAtIndex:sectionIndex];
+    ANSectionModel * section = [self _sectionAtIndex:sectionIndex createIfNotExist:YES];;
     [section.objects removeAllObjects];
     [section.objects addObjectsFromArray:items];
     self.currentUpdate = nil; // no update if storage reloading
@@ -138,7 +138,7 @@
     {
         [self startUpdate];
         
-        ANSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+        ANSectionModel * section = [self _createSectionIfNotExist:sectionNumber];
         NSUInteger numberOfItems = [section numberOfObjects];
         [section.objects addObject:item];
         [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
@@ -157,7 +157,7 @@
 {
     [self startUpdate];
     
-    ANSectionModel * section = [self createSectionIfNotExist:sectionNumber];
+    ANSectionModel * section = [self _createSectionIfNotExist:sectionNumber];
     
     for (id item in items)
     {
@@ -174,7 +174,7 @@
 {
     [self startUpdate];
     // Update datasource
-    ANSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+    ANSectionModel * section = [self _createSectionIfNotExist:indexPath.section];
     
     if ([section.objects count] < indexPath.row)
     {
@@ -236,7 +236,7 @@
     NSIndexPath * originalIndexPath = [self indexPathForItem:itemToReplace];
     if (originalIndexPath && replacingItem)
     {
-        ANSectionModel * section = [self createSectionIfNotExist:originalIndexPath.section];
+        ANSectionModel * section = [self _createSectionIfNotExist:originalIndexPath.section];
         
         [section.objects replaceObjectAtIndex:originalIndexPath.row
                                    withObject:replacingItem];
@@ -261,7 +261,7 @@
     
     if (indexPath)
     {
-        ANSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+        ANSectionModel * section = [self _createSectionIfNotExist:indexPath.section];
         [section.objects removeObjectAtIndex:indexPath.row];
     }
     else
@@ -282,7 +282,7 @@
         
         if (object)
         {
-            ANSectionModel * section = [self createSectionIfNotExist:indexPath.section];
+            ANSectionModel * section = [self _createSectionIfNotExist:indexPath.section];
             [section.objects removeObjectAtIndex:indexPath.row];
             [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
         }
@@ -391,18 +391,39 @@
     return foundedIndexPath;
 }
 
-- (ANSectionModel *)sectionAtIndex:(NSUInteger)sectionNumber
+- (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex
 {
-    [self startUpdate];
-    ANSectionModel * section = [self createSectionIfNotExist:sectionNumber];
-    [self finishUpdate];
-    
+    return [self _sectionAtIndex:sectionIndex createIfNotExist:NO];
+}
+
+- (ANSectionModel *)sectionAtIndex:(NSUInteger)sectionIndex createIfNeeded:(BOOL)shouldCreate
+{
+    return [self _sectionAtIndex:sectionIndex createIfNotExist:shouldCreate];
+}
+
+- (ANSectionModel*)_sectionAtIndex:(NSUInteger)sectionNumber createIfNotExist:(BOOL)createIfNotExist
+{
+    //TODO: HOTFIX:
+    ANSectionModel* section;
+    if (createIfNotExist)
+    {
+        [self startUpdate];
+        section = [self _createSectionIfNotExist:sectionNumber];
+        [self finishUpdate];
+    }
+    else
+    {
+        if (sectionNumber < self.sections.count)
+        {
+            return self.sections[sectionNumber];
+        }
+    }
     return section;
 }
 
 #pragma mark - private
 
-- (ANSectionModel *)createSectionIfNotExist:(NSUInteger)sectionNumber
+- (ANSectionModel *)_createSectionIfNotExist:(NSUInteger)sectionNumber
 {
     if (sectionNumber < self.sections.count)
     {
@@ -477,7 +498,7 @@
 {
     NSAssert(self.supplementaryHeaderKind, @"supplementaryHeaderKind property was not set before calling setSectionHeaderModel: forSectionIndex: method");
     
-    ANSectionModel * section = [self sectionAtIndex:sectionNumber];
+    ANSectionModel * section = [self _sectionAtIndex:sectionNumber createIfNotExist:YES];
     
     [section setSupplementaryModel:headerModel forKind:self.supplementaryHeaderKind];
 }
@@ -486,7 +507,7 @@
 {
     NSAssert(self.supplementaryFooterKind, @"supplementaryFooterKind property was not set before calling setSectionFooterModel: forSectionIndex: method");
     
-    ANSectionModel * section = [self sectionAtIndex:sectionNumber];
+    ANSectionModel * section = [self _sectionAtIndex:sectionNumber createIfNotExist:YES];
     
     [section setSupplementaryModel:footerModel forKind:self.supplementaryFooterKind];
 }
@@ -518,7 +539,7 @@
         }
         return;
     }
-    [self createSectionIfNotExist:([supplementaryModels count] - 1)];
+    [self _createSectionIfNotExist:([supplementaryModels count] - 1)];
     
     for (NSUInteger sectionNumber = 0; sectionNumber < [supplementaryModels count]; sectionNumber++)
     {
