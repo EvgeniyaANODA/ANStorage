@@ -435,7 +435,6 @@
         {
             ANSectionModel * section = [ANSectionModel new];
             [self.sections addObject:section];
-            NSLog(@"Section %d not exist, creating...", sectionIterator);
             [self.currentUpdate.insertedSectionIndexes addIndex:sectionIterator];
         }
         return [self.sections lastObject];
