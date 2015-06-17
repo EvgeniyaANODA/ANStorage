@@ -328,7 +328,6 @@
     // add safety
     [self startUpdate];
     
-    NSLog(@"Deleting Sections... \n%@", indexSet);
     [self.sections removeObjectsAtIndexes:indexSet];
     [self.currentUpdate.deletedSectionIndexes addIndexes:indexSet];
     
