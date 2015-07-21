@@ -8,14 +8,14 @@
 #import "ANMemoryStorage.h"
 #import "ANSectionInterface.h"
 #import "ANStorageUpdate.h"
-#import "ANSectionModel.h"
 #import "ANRuntimeHelper.h"
-#import "ANStorageMovedIndexPath.h"
+#import "ANMemoryStorage+ANItems.h"
+#import "ANMemoryStorage+ANSection.h"
 
 @interface ANMemoryStorage ()
 
-@property (nonatomic, strong) ANStorageUpdate * currentUpdate;
-@property (nonatomic, retain) NSMutableDictionary * searchingBlocks;
+@property (nonatomic, strong) ANStorageUpdate* currentUpdate;
+@property (nonatomic, retain) NSMutableDictionary* searchingBlocks;
 @property (nonatomic, assign) BOOL isBatchUpdateCreating;
 
 @end
@@ -91,6 +91,13 @@
 
 #pragma mark - Holy shit
 
+#pragma mark Clear Storage
+
+- (void)clearStorageUpdate
+{
+    self.currentUpdate = nil;
+//    NSAssert(!self.isBatchUpdateCreating, @"You are wrong with data added in the same update model, be careful with this!!!");
+}
 
 - (void)setItems:(NSArray *)items forSectionIndex:(NSUInteger)sectionIndex
 {
@@ -129,265 +136,93 @@
 
 - (void)addItem:(id)item
 {
-    [self addItem:item toSection:0];
+    [self _addItem:item toSection:0];
 }
 
 - (void)addItem:(id)item toSection:(NSUInteger)sectionNumber
 {
-    if (item)
-    {
-        [self startUpdate];
-        
-        ANSectionModel * section = [self _createSectionIfNotExist:sectionNumber];
-        NSUInteger numberOfItems = [section numberOfObjects];
-        [section.objects addObject:item];
-        [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
-                                                                               inSection:sectionNumber]];
-        
-        [self finishUpdate];
-    }
+    [self _addItem:item toSection:sectionNumber];
 }
 
 - (void)addItems:(NSArray *)items
 {
-    [self addItems:items toSection:0];
+    [self _addItems:items toSection:0];
 }
 
 - (void)addItems:(NSArray *)items toSection:(NSUInteger)sectionNumber
 {
-    [self startUpdate];
-    
-    ANSectionModel * section = [self _createSectionIfNotExist:sectionNumber];
-    
-    for (id item in items)
-    {
-        NSUInteger numberOfItems = [section numberOfObjects];
-        [section.objects addObject:item];
-        [self.currentUpdate.insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
-                                                                               inSection:sectionNumber]];
-    }
-    
-    [self finishUpdate];
+    [self _addItems:items toSection:sectionNumber];
 }
 
 - (void)addItem:(id)item atIndexPath:(NSIndexPath *)indexPath
 {
-    [self startUpdate];
-    // Update datasource
-    ANSectionModel * section = [self _createSectionIfNotExist:indexPath.section];
-    
-    if ([section.objects count] < indexPath.row)
-    {
-        NSLog(@"ANMemoryStorage: failed to insert item for section: %ld, row: %ld, only %lu items in section",
-              (long)indexPath.section,
-              (long)indexPath.row,
-              (unsigned long)[section.objects count]);
-        return;
-    }
-    [section.objects insertObject:item atIndex:indexPath.row];
-    
-    [self.currentUpdate.insertedRowIndexPaths addObject:indexPath];
-    
-    [self finishUpdate];
+    [self _addItem:item atIndexPath:indexPath];
 }
 
 - (void)reloadItem:(id)item
 {
-    [self startUpdate];
-    
-    NSIndexPath * indexPathToReload = [self indexPathForItem:item];
-    
-    if (indexPathToReload)
-    {
-        [self.currentUpdate.updatedRowIndexPaths addObject:indexPathToReload];
-    }
-    
-    [self finishUpdate];
+    [self _reloadItem:item];
 }
 
 - (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath
 {
-    //TODO: add safely
-    ANSectionModel * fromSection = [self sections][fromIndexPath.section];
-    ANSectionModel * toSection = [self sections][toIndexPath.section];
-    id tableItem = fromSection.objects[fromIndexPath.row];
-    
-    if (fromIndexPath && toIndexPath)
-    {
-        [self startUpdate];
-        
-        [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
-        [toSection.objects insertObject:tableItem atIndex:toIndexPath.row];
-        
-        ANStorageMovedIndexPath *path = [ANStorageMovedIndexPath new];
-        path.fromIndexPath = fromIndexPath;
-        path.toIndexPath = toIndexPath;
-        
-        [self.currentUpdate.movedRowsIndexPaths addObject:path];
-
-        [self finishUpdate];
-    }
+    [self _moveItemFromIndexPath:fromIndexPath toIndexPath:toIndexPath];
 }
 
 - (void)replaceItem:(id)itemToReplace withItem:(id)replacingItem
 {
-    [self startUpdate];
-    
-    NSIndexPath * originalIndexPath = [self indexPathForItem:itemToReplace];
-    if (originalIndexPath && replacingItem)
-    {
-        ANSectionModel * section = [self _createSectionIfNotExist:originalIndexPath.section];
-        
-        [section.objects replaceObjectAtIndex:originalIndexPath.row
-                                   withObject:replacingItem];
-    }
-    else
-    {
-        NSLog(@"ANMemoryStorage: failed to replace item %@ at indexPath: %@", replacingItem, originalIndexPath);
-        return;
-    }
-    [self.currentUpdate.updatedRowIndexPaths addObject:originalIndexPath];
-    
-    [self finishUpdate];
+    [self _replaceItem:itemToReplace withItem:replacingItem];
 }
 
 #pragma mark - Removing items
 
 - (void)removeItem:(id)item
 {
-    [self startUpdate];
-    
-    NSIndexPath * indexPath = [self indexPathForItem:item];
-    
-    if (indexPath)
-    {
-        ANSectionModel * section = [self _createSectionIfNotExist:indexPath.section];
-        [section.objects removeObjectAtIndex:indexPath.row];
-    }
-    else
-    {
-        NSLog(@"ANMemoryStorage: item to delete: %@ was not found", item);
-        return;
-    }
-    [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
-    [self finishUpdate];
+    [self _removeItem:item];
 }
 
 - (void)removeItemsAtIndexPaths:(NSArray *)indexPaths
 {
-    [self startUpdate];
-    for (NSIndexPath * indexPath in indexPaths)
-    {
-        id object = [self objectAtIndexPath:indexPath];
-        
-        if (object)
-        {
-            ANSectionModel * section = [self _createSectionIfNotExist:indexPath.section];
-            [section.objects removeObjectAtIndex:indexPath.row];
-            [self.currentUpdate.deletedRowIndexPaths addObject:indexPath];
-        }
-        else
-        {
-            NSLog(@"ANMemoryStorage: item to delete was not found at indexPath : %@ ", indexPath);
-        }
-    }
-    [self finishUpdate];
+    [self _removeItemsAtIndexPaths:indexPaths];
 }
 
 - (void)removeItems:(NSArray *)items
 {
-    [self startUpdate];
-    
-    NSMutableArray* indexPaths = [NSMutableArray array]; // TODO: set mb?
-    
-    [items enumerateObjectsUsingBlock:^(id item, NSUInteger idx, BOOL *stop) {
-       
-        NSIndexPath* indexPath = [self indexPathForItem:item];
-        
-        if (indexPath)
-        {
-            ANSectionModel* section = self.sections[indexPath.section];
-            [section.objects removeObjectAtIndex:indexPath.row];
-        }
-    }];
-    
-    [self.currentUpdate.deletedRowIndexPaths addObjectsFromArray:indexPaths];
-    [self finishUpdate];
+    [self _removeItems:items];
 }
 
 - (void)removeAllItems
 {
-    [self.sections removeAllObjects];
-    [self.delegate storageNeedsReload];
+    [self _removeAllItems];
+}
+
+- (NSArray *)indexPathArrayForItems:(NSArray *)items
+{
+    return [self _indexPathArrayForItems:items];
 }
 
 #pragma  mark - Sections
 
-- (void)deleteSections:(NSIndexSet *)indexSet
+- (void)removeSections:(NSIndexSet *)indexSet
 {
-    // add safety
-    [self startUpdate];
-    
-    [self.sections removeObjectsAtIndexes:indexSet];
-    [self.currentUpdate.deletedSectionIndexes addIndexes:indexSet];
-    
-    [self finishUpdate];
+    [self _removeSections:indexSet];
 }
 
 #pragma mark - Search
 
 - (NSArray *)itemsInSection:(NSUInteger)sectionNumber
 {
-    NSArray* objects;
-    if ([self.sections count] > sectionNumber)
-    {
-        ANSectionModel * section = self.sections[sectionNumber];
-        objects = [section objects];
-    }
-    return objects;
+    return [self _itemsInSection:sectionNumber];
 }
 
 - (id)itemAtIndexPath:(NSIndexPath *)indexPath
 {
-    id object = nil;
-    if (indexPath.section < [self.sections count])
-    {
-        NSArray* section = [self itemsInSection:indexPath.section];
-        if (indexPath.row < [section count])
-        {
-            object = [section objectAtIndex:indexPath.row];
-        }
-        else
-        {
-            NSLog(@"ANMemoryStorage: Row not found while searching for item");
-        }
-    }
-    else
-    {
-        NSLog(@"ANMemoryStorage: Section not found while searching for item");
-    }
-    return object;
+    return [self _itemAtIndexPath:indexPath];
 }
 
 - (NSIndexPath *)indexPathForItem:(id)item
 {
-    __block NSIndexPath* foundedIndexPath = nil;
-    
-    [self.sections enumerateObjectsUsingBlock:^(id obj, NSUInteger sectionIndex, BOOL *stop) {
-        
-        if ([obj respondsToSelector:@selector(objects)])
-        {
-            NSArray * rows = [obj objects];
-            NSUInteger index = [rows indexOfObject:item];
-            if (index != NSNotFound)
-            {
-                foundedIndexPath = [NSIndexPath indexPathForRow:index inSection:sectionIndex];
-                *stop = YES;
-            }
-        }
-    }];
-
-    return foundedIndexPath;
+    return [self _indexPathForItem:item];
 }
 
 - (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex
@@ -397,117 +232,35 @@
 
 - (ANSectionModel *)sectionAtIndex:(NSUInteger)sectionIndex createIfNeeded:(BOOL)shouldCreate
 {
+//    return [self _sectionAtIndex:sectionIndex createIfNeeded:shouldCreate];
     return [self _sectionAtIndex:sectionIndex createIfNotExist:shouldCreate];
 }
-
-- (ANSectionModel*)_sectionAtIndex:(NSUInteger)sectionNumber createIfNotExist:(BOOL)createIfNotExist
-{
-    //TODO: HOTFIX:
-    ANSectionModel* section;
-    if (createIfNotExist)
-    {
-        [self startUpdate];
-        section = [self _createSectionIfNotExist:sectionNumber];
-        [self finishUpdate];
-    }
-    else
-    {
-        if (sectionNumber < self.sections.count)
-        {
-            return self.sections[sectionNumber];
-        }
-    }
-    return section;
-}
-
-#pragma mark - private
-
-- (ANSectionModel *)_createSectionIfNotExist:(NSUInteger)sectionNumber
-{
-    if (sectionNumber < self.sections.count)
-    {
-        return self.sections[sectionNumber];
-    }
-    else
-    {
-        for (NSInteger sectionIterator = self.sections.count; sectionIterator <= sectionNumber; sectionIterator++)
-        {
-            ANSectionModel * section = [ANSectionModel new];
-            [self.sections addObject:section];
-            [self.currentUpdate.insertedSectionIndexes addIndex:sectionIterator];
-        }
-        return [self.sections lastObject];
-    }
-}
-
-//This implementation is not optimized, and may behave poorly with lot of sections
-- (NSArray *)indexPathArrayForItems:(NSArray *)items
-{
-    NSMutableArray * indexPaths = [[NSMutableArray alloc] initWithCapacity:[items count]];
-    
-    for (NSInteger i = 0; i < [items count]; i++)
-    {
-        NSIndexPath * foundIndexPath = [self indexPathForItem:[items objectAtIndex:i]];
-        if (!foundIndexPath)
-        {
-            NSLog(@"ANMemoryStorage: object %@ not found", [items objectAtIndex:i]);
-        }
-        else
-        {
-            [indexPaths addObject:foundIndexPath];
-        }
-    }
-    return indexPaths;
-}
-
-
 
 #pragma mark - Views
 
 -(void)setSectionHeaderModels:(NSArray *)headerModels
 {
-    NSAssert(self.supplementaryHeaderKind, @"Please set supplementaryHeaderKind property before setting section header models");
-    
-    [self setSupplementaries:headerModels forKind:self.supplementaryHeaderKind];
+    [self _setSectionHeaderModels:headerModels];
 }
 
 - (void)setSectionFooterModels:(NSArray *)footerModels
 {
-    NSAssert(self.supplementaryFooterKind, @"Please set supplementaryFooterKind property before setting section header models");
-    
-    [self setSupplementaries:footerModels forKind:self.supplementaryFooterKind];
+    [self _setSectionFooterModels:footerModels];
 }
 
 - (id)supplementaryModelOfKind:(NSString *)kind forSectionIndex:(NSUInteger)sectionNumber
 {
-    ANSectionModel * sectionModel = nil;
-    if (sectionNumber >= self.sections.count)
-    {
-        return nil;
-    }
-    else
-    {
-        sectionModel = [self sections][sectionNumber];
-    }
-    return [sectionModel supplementaryModelOfKind:kind];
+    return [self _supplementaryModelOfKind:kind forSectionIndex:sectionNumber];
 }
 
 -(void)setSectionHeaderModel:(id)headerModel forSectionIndex:(NSUInteger)sectionNumber
 {
-    NSAssert(self.supplementaryHeaderKind, @"supplementaryHeaderKind property was not set before calling setSectionHeaderModel: forSectionIndex: method");
-    
-    ANSectionModel * section = [self _sectionAtIndex:sectionNumber createIfNotExist:YES];
-    
-    [section setSupplementaryModel:headerModel forKind:self.supplementaryHeaderKind];
+    [self _setSectionHeaderModel:headerModel forSectionIndex:sectionNumber];
 }
 
 -(void)setSectionFooterModel:(id)footerModel forSectionIndex:(NSUInteger)sectionNumber
 {
-    NSAssert(self.supplementaryFooterKind, @"supplementaryFooterKind property was not set before calling setSectionFooterModel: forSectionIndex: method");
-    
-    ANSectionModel * section = [self _sectionAtIndex:sectionNumber createIfNotExist:YES];
-    
-    [section setSupplementaryModel:footerModel forKind:self.supplementaryFooterKind];
+    [self _setSectionFooterModel:footerModel forSectionIndex:sectionNumber];
 }
 
 -(id)headerModelForSectionIndex:(NSInteger)index
@@ -528,25 +281,8 @@
 
 - (void)setSupplementaries:(NSArray *)supplementaryModels forKind:(NSString *)kind
 {
-    [self startUpdate];
-    if (!supplementaryModels || [supplementaryModels count] == 0)
-    {
-        for (ANSectionModel * section in self.sections)
-        {
-            [section setSupplementaryModel:nil forKind:kind];
-        }
-        return;
-    }
-    [self _createSectionIfNotExist:([supplementaryModels count] - 1)];
-    
-    for (NSUInteger sectionNumber = 0; sectionNumber < [supplementaryModels count]; sectionNumber++)
-    {
-        ANSectionModel * section = self.sections[sectionNumber];
-        [section setSupplementaryModel:supplementaryModels[sectionNumber] forKind:kind];
-    }
-    [self finishUpdate];
+    [self _setSupplementaries:supplementaryModels forKind:kind];
 }
-
 
 - (instancetype)searchingStorageForSearchString:(NSString *)searchString
                                   inSearchScope:(NSUInteger)searchScope
@@ -572,6 +308,20 @@
         NSLog(@"No predicate was created, so no searching. Check your setter for storagePredicateBlock");
     }
     return storage;
+}
+
+- (ANStorageUpdate *)loadCurrentUpdate
+{
+    return self.currentUpdate;
+}
+
+- (BOOL)isButchModelCreating
+{
+    return self.isBatchUpdateCreating;
+}
+
+- (void)createCurrentUpdate {
+    self.currentUpdate = [ANStorageUpdate new];
 }
 
 @end
