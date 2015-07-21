@@ -8,12 +8,13 @@
 #import "ANBaseStorage.h"
 #import "ANSectionModel.h"
 #import "ANHelperFunctions.h"
+#import "ANStorageMovedIndexPath.h"
 
 typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSInteger scope);
 
 @interface ANMemoryStorage : ANBaseStorage <ANStorageInterface>
 
-@property (nonatomic, strong) NSMutableArray * sections;
+@property (nonatomic, strong) NSMutableArray* sections;
 
 +(instancetype)storage;
 
@@ -59,11 +60,13 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 
 - (void)moveItemFromIndexPath:(NSIndexPath*)fromIndexPath toIndexPath:(NSIndexPath*)toIndexPath;
 
+#pragma mark Clear Storage
+- (void)clearStorageUpdate;
 
 
 #pragma mark - Sections
 
-- (void)deleteSections:(NSIndexSet*)indexSet;
+- (void)removeSections:(NSIndexSet*)indexSet;
 - (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex;
 - (ANSectionModel*)sectionAtIndex:(NSUInteger)sectionIndex createIfNeeded:(BOOL)shouldCreate;
 
@@ -98,5 +101,13 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 #pragma mark - Searching
 
 @property (nonatomic, copy) ANMemoryStoragePredicate storagePredicateBlock;
+
+#pragma mark - Updates
+
+- (ANStorageUpdate *)loadCurrentUpdate;
+- (BOOL)isButchModelCreating;
+- (void)createCurrentUpdate;
+- (void)startUpdate;
+- (void)finishUpdate;
 
 @end

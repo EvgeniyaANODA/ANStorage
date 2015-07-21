@@ -7,7 +7,7 @@
 
 @interface ANStorageUpdate : NSObject
 
-@property (nonatomic, assign) BOOL isProcessing;
+@property (atomic, assign) BOOL isProcessing;
 
 @property (nonatomic, strong) NSMutableIndexSet *deletedSectionIndexes;
 @property (nonatomic, strong) NSMutableIndexSet *insertedSectionIndexes;
@@ -16,5 +16,6 @@
 @property (nonatomic, strong) NSMutableArray *insertedRowIndexPaths;
 @property (nonatomic, strong) NSMutableArray *updatedRowIndexPaths;
 @property (nonatomic, strong) NSMutableArray* movedRowsIndexPaths;
+- (BOOL)isEmpty;
 
 @end
