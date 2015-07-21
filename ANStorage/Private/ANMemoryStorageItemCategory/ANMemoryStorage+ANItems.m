@@ -179,8 +179,6 @@
     if (fromIndexPath && toIndexPath)
     {
         id testItem = [fromSection.objects objectAtIndex:fromIndexPath.row];
-        NSLog(@"from section %i, from index path: %i",fromIndexPath.section,fromIndexPath.row);
-        NSLog(@"to section %i, to index path: %i",toIndexPath.section,toIndexPath.row);
         
         [self startUpdate];
         [fromSection.objects removeObjectAtIndex:fromIndexPath.row];
