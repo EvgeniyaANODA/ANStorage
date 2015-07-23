@@ -324,4 +324,17 @@
     self.currentUpdate = [ANStorageUpdate new];
 }
 
+
+#pragma mark Update storage methods
+
+- (void)updateStorageWithBlock:(void(^)())block
+{
+    if (block)
+    {
+        ANDispatchBlockToMainQueue(^{
+            block();
+        });
+    }
+}
+
 @end
