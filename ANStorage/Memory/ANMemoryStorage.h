@@ -110,4 +110,8 @@ typedef NSPredicate*(^ANMemoryStoragePredicate)(NSString* searchString, NSIntege
 - (void)startUpdate;
 - (void)finishUpdate;
 
+#pragma mark Update storage methods
+
+- (void)updateStorageWithBlock:(void(^)())block;
+
 @end

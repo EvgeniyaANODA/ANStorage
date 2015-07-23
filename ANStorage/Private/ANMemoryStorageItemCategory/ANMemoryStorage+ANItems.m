@@ -39,16 +39,16 @@
 
 - (void)_addItems:(NSArray *)items toSection:(NSUInteger)sectionNumber
 {
+    
     [self startUpdate];
-    
     ANSectionModel* section = [self _createSectionIfNotExist:sectionNumber];
-    
     for (id item in items)
     {
         NSUInteger numberOfItems = [section numberOfObjects];
         [section.objects addObject:item];
         [[self loadCurrentUpdate].insertedRowIndexPaths addObject:[NSIndexPath indexPathForRow:numberOfItems
                                                                                inSection:sectionNumber]];
+        numberOfItems++;
     }
     [self finishUpdate];
 }
