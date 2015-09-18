@@ -26,6 +26,7 @@
     if ([classString isEqualToString:@"__NSCFConstantString"] ||
         [classString isEqualToString:@"__NSCFString"] ||
         [classString isEqualToString:@"_NSContiguousString"] ||
+        [classString isEqualToString:@"NSTaggedPointerString"] ||
         class == [NSMutableString class])
     {
         return @"NSString";
